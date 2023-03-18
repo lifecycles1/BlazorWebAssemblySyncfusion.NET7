@@ -1,0 +1,150 @@
+﻿@page "/contacts/edit/{id:int}"
+@page "/contacts/new"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+@if (Id is not null)
+{
+    <h3>Edit @contact.NickName</h3>
+
+}
+else
+{
+    <h3>Create a new contact</h3>
+}
+
+<div>
+    <Microsoft.AspNetCore.Components.Forms.EditForm Model="contact" OnValidSubmit="HandleSubmit">
+        <Microsoft.AspNetCore.Components.Forms.DataAnnotationsValidator />
+        <Syncfusion.Blazor.Inputs.SfTextBox CssClass="e-outline" Placeholder="First Name" FloatLabelType="@Syncfusion.Blazor.Inputs.FloatLabelType.Auto" @bind-Value="contact.FirstName"/>
+        <Syncfusion.Blazor.Inputs.SfTextBox CssClass="e-outline" Placeholder="Last Name" FloatLabelType="@Syncfusion.Blazor.Inputs.FloatLabelType.Auto" @bind-Value="contact.LastName"/>
+        <Syncfusion.Blazor.Inputs.SfTextBox CssClass="e-outline" Placeholder="Nick Name" FloatLabelType="@Syncfusion.Blazor.Inputs.FloatLabelType.Auto" @bind-Value="contact.NickName"/>
+        <Microsoft.AspNetCore.Components.Forms.ValidationMessage For="(() => contact.NickName)" />
+        <Syncfusion.Blazor.Inputs.SfTextBox CssClass="e-outline" Placeholder="Place" FloatLabelType="@Syncfusion.Blazor.Inputs.FloatLabelType.Auto" @bind-Value="contact.Place"/>
+        <Syncfusion.Blazor.Calendars.SfDatePicker TValue="DateTime?" Placeholder="Date of Birth" FloatLabelType="@Syncfusion.Blazor.Inputs.FloatLabelType.Auto" @bind-Value="contact.DateOfBirth" Format="MM/dd/yyyy"/>
+        <hr/>
+        <SfButton CssClass="e-primary" IconCss="e-icons e-save" Content="Save" type="submit"/>
+    </Microsoft.AspNetCore.Components.Forms.EditForm>
+    <p>
+        <Syncfusion.Blazor.Notifications.SfMessage Severity="Syncfusion.Blazor.Notifications.MessageSeverity.Success" Visible="showSuccessMessage">
+            Contact saved successfully.
+        </Syncfusion.Blazor.Notifications.SfMessage>
+        <Syncfusion.Blazor.Notifications.SfMessage Severity="Syncfusion.Blazor.Notifications.MessageSeverity.Error" Visible="showErrorMessage">
+            Oops, something went wrong.
+        </Syncfusion.Blazor.Notifications.SfMessage>
+    </p>
+    @if (Id is not null)
+    {
+        <h3>Notes</h3>
+        <Syncfusion.Blazor.Inputs.SfTextBox CssClass="e-outline" Placeholder="New Note" Multiline="true" FloatLabelType="@Syncfusion.Blazor.Inputs.FloatLabelType.Auto" @bind-Value="newNote.Text"></Syncfusion.Blazor.Inputs.SfTextBox>
+        <SfButton CssClass="e-inherit" Content="Add Note" OnClick="CreateNote"></SfButton>
+        <hr />
+        <p>
+            <SfButton IsPrimary="true" Content="Load All Notes" OnClick="LoadNotes"></SfButton>
+        </p>
+        @foreach (var note in notes)
+        {
+            <Syncfusion.Blazor.Cards.SfCard>
+                <Syncfusion.Blazor.Cards.CardHeader Title="@note.DateCreated.ToString()"></Syncfusion.Blazor.Cards.CardHeader>
+                <Syncfusion.Blazor.Cards.CardContent Content="@note.Text"></Syncfusion.Blazor.Cards.CardContent>
+                <Syncfusion.Blazor.Cards.CardFooter>
+                    <Syncfusion.Blazor.Cards.CardFooterContent>
+                        <SfButton Content="Delete" IsPrimary="true" OnClick="@(() => DeleteNote(note.Id))"></SfButton>
+                    </Syncfusion.Blazor.Cards.CardFooterContent>
+                </Syncfusion.Blazor.Cards.CardFooter>
+            </Syncfusion.Blazor.Cards.SfCard>
+            <br />
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+    public Contact contact { get; set; } = new Contact();
+    public List<Note> notes { get; set; } = new List<Note>();
+    public Note newNote { get; set; } = new Note { Text = string.Empty };
+
+    bool showSuccessMessage = false;
+    bool showErrorMessage = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is not null)
+        {
+            var result = await Http.GetAsync($"api/contacts/{Id}");
+            if (result.IsSuccessStatusCode)
+            {
+                var jsonResult = await result.Content.ReadFromJsonAsync<Contact>();
+                if (jsonResult is not null)
+                {
+                    contact = jsonResult;
+                }
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/contacts/new");
+            }
+        }
+    }
+
+    async Task HandleSubmit()
+    {
+        HttpResponseMessage result;
+        if (Id is not null)
+        {
+            result = await Http.PutAsJsonAsync($"api/contacts/{contact.Id}", contact);
+        }
+        else
+        {
+            result = await Http.PostAsJsonAsync($"api/contacts", contact);
+        }
+
+        if (result.IsSuccessStatusCode)
+        {
+            var jsonResult = await result.Content.ReadFromJsonAsync<Contact>();
+            if (jsonResult is not null)
+            {
+                contact = jsonResult;
+                showSuccessMessage = true;
+            }
+        }
+        else
+        {
+            showErrorMessage = true;
+        }
+    }
+
+    async Task CreateNote()
+    {
+        if (Id is null)
+        {
+            return;
+        }
+
+        newNote.ContactId = Id;
+        var result = await Http.PostAsJsonAsync($"/api/notes", newNote);
+        if (result.IsSuccessStatusCode)
+        {
+            await LoadNotes();
+        }
+    }
+
+    async Task LoadNotes()
+    {
+        var result = await Http.GetFromJsonAsync<List<Note>>($"api/notes/{contact.Id}");
+        if (result is not null)
+        {
+            notes = result;
+        }
+    }
+
+    async Task DeleteNote(int noteId)
+    {
+        var result = await Http.DeleteFromJsonAsync<List<Note>>($"/api/notes/{noteId}");
+        if (result is not null)
+        {
+            notes = result;
+        }
+    }
+}
