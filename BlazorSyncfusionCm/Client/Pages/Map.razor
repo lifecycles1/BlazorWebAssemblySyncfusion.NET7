@@ -1,0 +1,29 @@
+﻿@page "/map"
+@inject HttpClient Http
+
+<h3>Map</h3>
+
+<Syncfusion.Blazor.Maps.SfMaps>
+    <Syncfusion.Blazor.Maps.MapsLayers>
+        <Syncfusion.Blazor.Maps.MapsLayer UrlTemplate="https://tile.openstreetmap.org/level/tileX/tileY.png" TValue="string">
+            <Syncfusion.Blazor.Maps.MapsMarkerSettings>
+                <Syncfusion.Blazor.Maps.MapsMarker Visible="true" Shape="Syncfusion.Blazor.Maps.MarkerType.Circle" DataSource="Contacts" Height="25" Width="15" TValue="Contact">
+                    <Syncfusion.Blazor.Maps.MapsMarkerTooltipSettings Visible="true" ValuePath="Place"></Syncfusion.Blazor.Maps.MapsMarkerTooltipSettings>
+                </Syncfusion.Blazor.Maps.MapsMarker>
+            </Syncfusion.Blazor.Maps.MapsMarkerSettings>
+        </Syncfusion.Blazor.Maps.MapsLayer>
+    </Syncfusion.Blazor.Maps.MapsLayers>
+    <Syncfusion.Blazor.Maps.MapsZoomSettings Enable="true" HorizontalAlignment="Syncfusion.Blazor.Maps.Alignment.Near" ShouldZoomInitially="true"></Syncfusion.Blazor.Maps.MapsZoomSettings>
+</Syncfusion.Blazor.Maps.SfMaps>
+
+@code {
+    public List<Contact> Contacts { get; set; } = new List<Contact>();
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Http.GetFromJsonAsync<List<Contact>>("api/contacts/map");
+        if (result is not null)
+        {
+            Contacts = result;
+        }
+    }
+}

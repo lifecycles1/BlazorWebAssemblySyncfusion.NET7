@@ -85,9 +85,15 @@ namespace BlazorSyncfusionCm.Server.Controllers
             return await GetAllContacts();
         }
 
+        [HttpGet("map")]
+        public async Task<ActionResult<List<Contact>>> GetMapContacts()
+        {
+            return await _context.Contacts.Where(c => !c.IsDeleted && c.Latitude != null && c.Longitude != null).ToListAsync();
+        }
+
         MapPoint? GetLatLong(Contact contact)
         {
-            var gls = new GoogleLocationService(""); // place API key here
+            var gls = new GoogleLocationService(""); // place API key here with GeoCoding API turned on
             var latLong = gls.GetLatLongFromAddress(contact.Place);
             return latLong;
         }
